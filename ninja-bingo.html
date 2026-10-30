@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ninja Reading Bingo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Lexend:wght@500;600;700&display=swap">
+<style>
+/* Layout: a night dojo — ink-dark stage, rice-paper board, sentence scrolls on two edges, red for every hit. */
+:root{
+  color-scheme: dark;
+  --ink:#12151d;          /* stage */
+  --ink-2:#1b2030;        /* panels */
+  --line:#2c3347;
+  --paper:#f2ead9;        /* board cells */
+  --paper-2:#e6dcc6;
+  --paper-ink:#2a2420;
+  --fg:#eef0f5;
+  --muted:#9aa3b8;
+  --red:#e0452f;          /* hits, selection */
+  --red-soft:rgba(224,69,47,.18);
+  --gold:#f0b43c;         /* column scrolls */
+  --gold-soft:rgba(240,180,60,.18);
+  --steel:#c9d0dc;
+  --f-display:'Black Han Sans','Jua',system-ui,sans-serif;
+  --f-ui:'Jua',system-ui,sans-serif;
+  --f-en:'Lexend',system-ui,sans-serif;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--ink);color:var(--fg);font-family:var(--f-ui);margin:0;word-break:keep-all}
+.wrap{max-width:1320px;margin:0 auto;padding-block:14px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:10px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:46px;height:46px;flex:none}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,3.2vw,40px);margin:0;letter-spacing:.5px;line-height:1}
+h1 small{display:block;font-family:var(--f-ui);font-size:15px;color:var(--muted);letter-spacing:0;margin-top:6px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font-family:var(--f-ui);font-size:16px;color:var(--fg);background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer;min-height:44px}
+.btn:hover{border-color:var(--muted)}
+.btn:focus-visible,.hd:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn[disabled]{opacity:.4;cursor:default}
+.score{font-family:var(--f-en);font-weight:700;font-size:18px;padding:8px 14px;border-radius:10px;background:var(--ink-2);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+.score b{color:var(--red)}
+
+.status{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
+.pick{flex:1 1 300px;min-width:0;display:flex;gap:10px;align-items:center;background:var(--ink-2);border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-size:17px}
+.pick .tag{flex:none;font-size:14px;padding:4px 10px;border-radius:999px;font-family:var(--f-ui)}
+.pick.row .tag{background:var(--red);color:#fff}
+.pick.col .tag{background:var(--gold);color:#2a1c00}
+.pick .txt{font-family:var(--f-en);font-weight:600;min-width:0;overflow-wrap:anywhere}
+.pick .txt.empty{font-family:var(--f-ui);font-weight:400;color:var(--muted)}
+.msg{flex:1 1 100%;min-height:22px;font-size:17px;color:var(--gold);text-align:center}
+.msg.warn{color:#ff8a78}
+
+.stage{overflow-x:auto;border-radius:16px}
+.board{position:relative;display:grid;grid-template-columns:minmax(210px,1.55fr) repeat(5,minmax(118px,1fr));gap:8px;min-width:820px;padding:10px;background:var(--ink-2);border:1px solid var(--line);border-radius:16px}
+.corner{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:10px;text-align:center;color:var(--muted);font-size:15px;line-height:1.35}
+.corner .ar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.corner .ar i{font-style:normal;padding:2px 8px;border-radius:999px;font-size:13px}
+.corner .r{background:var(--red);color:#fff}.corner .c{background:var(--gold);color:#2a1c00}
+
+.hd{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:10px;border-radius:12px;padding:10px 12px;font-family:var(--f-en);font-weight:600;line-height:1.25;color:var(--fg);transition:background .15s,box-shadow .15s,transform .15s}
+.hd .n{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;font-size:15px;font-weight:700}
+.hd.r{align-items:center;font-size:clamp(15px,1.45vw,19px);background:rgba(224,69,47,.08);border:2px solid rgba(224,69,47,.35)}
+.hd.r .n{background:var(--red);color:#fff}
+.hd.c{flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;text-align:center;font-size:clamp(14px,1.3vw,17px);background:rgba(240,180,60,.08);border:2px solid rgba(240,180,60,.35);min-height:100px}
+.hd.c .n{background:var(--gold);color:#2a1c00}
+.hd:hover{transform:translateY(-1px)}
+.hd.r[aria-pressed="true"]{background:var(--red);border-color:var(--red);box-shadow:0 0 0 4px var(--red-soft)}
+.hd.r[aria-pressed="true"] .n{background:#fff;color:var(--red)}
+.hd.c[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#2a1c00;box-shadow:0 0 0 4px var(--gold-soft)}
+.hd.c[aria-pressed="true"] .n{background:#2a1c00;color:var(--gold)}
+
+.cell{position:relative;background:var(--paper);border-radius:12px;display:grid;place-items:center;aspect-ratio:1.8/1;min-height:84px;overflow:hidden;transition:background .2s}
+.cell.lane-r{box-shadow:inset 0 0 0 3px var(--red)}
+.cell.lane-c{box-shadow:inset 0 0 0 3px var(--gold)}
+.cell.lane-r.lane-c{box-shadow:inset 0 0 0 4px var(--red),0 0 0 3px var(--gold)}
+.cell .ninja{grid-area:1/1;width:auto;height:66%;max-height:80px;transition:transform .35s,opacity .35s}
+.cell .ninja.dead{display:none}
+.cell .lbl{position:absolute;left:8px;top:6px;font-family:var(--f-en);font-size:12px;font-weight:700;color:#7d7262;font-variant-numeric:tabular-nums}
+.cell.out{background:var(--paper-2)}
+.cell.out .ninja.alive{display:none}
+.cell.out .ninja.dead{display:block;transform:rotate(-24deg) translateY(4px) scale(.9);opacity:.8}
+.cell .stamp{position:absolute;inset:auto 8px 8px auto;font-family:var(--f-display);font-size:clamp(16px,1.6vw,22px);color:var(--red);border:3px solid var(--red);border-radius:8px;padding:0 6px;transform:rotate(-10deg);opacity:0;line-height:1.3}
+.cell.out .stamp{opacity:.95}
+.cell .stuck{position:absolute;width:50px;height:50px;left:56%;top:6%;opacity:0;transform:rotate(18deg)}
+.cell.out .stuck{opacity:1}
+.cell.hit{animation:hit .45s ease-out}
+@keyframes hit{0%{background:#fff}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-3px)}100%{transform:none}}
+.cell .burst{position:absolute;inset:0;pointer-events:none}
+
+.star{position:absolute;width:46px;height:46px;margin:-23px 0 0 -23px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
+
+footer{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--muted);font-size:15px;line-height:1.5}
+footer b{color:var(--fg);font-weight:400}
+
+.dlg{position:fixed;inset:0;display:grid;place-items:center;background:rgba(6,8,12,.7);z-index:20;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.dlg .box{background:var(--ink-2);border:1px solid var(--line);border-radius:16px;padding:22px;max-width:380px;display:flex;flex-direction:column;gap:16px;font-size:18px;text-align:center}
+.dlg .row{display:flex;gap:10px;justify-content:center}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+
+.intro{position:fixed;inset:0;z-index:15;background:var(--ink);overflow-y:auto;padding-block:max(20px,env(safe-area-inset-top,0px)) max(24px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.intro .in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.intro h2{font-family:var(--f-display);font-weight:400;font-size:clamp(34px,4.4vw,56px);margin:0;line-height:1.05;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.intro h2 svg{width:60px;height:60px;flex:none}
+.intro h2 small{font-family:var(--f-ui);font-size:clamp(18px,1.8vw,24px);color:var(--muted)}
+.intro .cols{display:flex;flex-wrap:wrap;gap:26px;align-items:flex-start}
+.steps{flex:1 1 520px;min-width:0;list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;counter-reset:s}
+.steps li{display:flex;gap:16px;align-items:flex-start;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:14px 18px;font-size:clamp(19px,1.9vw,25px);line-height:1.4}
+.steps li::before{counter-increment:s;content:counter(s);flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:var(--red);color:#fff;font-family:var(--f-en);font-weight:700;font-size:21px}
+.steps li.win{border-color:var(--gold);background:rgba(240,180,60,.1)}
+.steps li.win::before{background:var(--gold);color:#2a1c00}
+.steps em{font-style:normal;color:var(--gold)}
+.steps strong{font-weight:400;color:#ff8a78}
+.demo{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:12px;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;padding:16px}
+.demo .cap{font-size:18px;color:var(--muted);text-align:center}
+.mini{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.mini div{aspect-ratio:1/1;border-radius:7px;display:grid;place-items:center;font-family:var(--f-en);font-weight:700;font-size:15px;position:relative}
+.mini .h{background:transparent;color:var(--muted)}
+.mini .hr{background:var(--red);color:#fff}.mini .hc{background:var(--gold);color:#2a1c00}
+.mini .c{background:var(--paper)}
+.mini .c.lr{box-shadow:inset 0 0 0 3px var(--red)}.mini .c.lc{box-shadow:inset 0 0 0 3px var(--gold)}
+.mini .c svg{width:70%;height:70%}
+.mini .c.x::after{content:"";position:absolute;inset:14%;background:linear-gradient(45deg,transparent 44%,var(--red) 44%,var(--red) 56%,transparent 56%),linear-gradient(-45deg,transparent 44%,var(--red) 44%,var(--red) 56%,transparent 56%)}
+.demo .res{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;font-size:18px}
+.demo .res span{padding:6px 12px;border-radius:999px;background:var(--ink);border:1px solid var(--line)}
+.demo .res b{font-weight:400;color:var(--gold)}
+.intro .go{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.btn.big{font-size:24px;padding:14px 34px;min-height:60px;border-radius:14px}
+
+/* fit-to-screen mode: the whole game scales to fill the window */
+html.fit,html.fit body{overflow:hidden}
+html.fit .wrap{position:absolute;top:0;left:0;width:1320px;max-width:none;margin:0;transform-origin:0 0;box-sizing:border-box}
+html.fit .stage{flex:1 1 auto;min-height:0;overflow:hidden}
+html.fit .board{height:100%;box-sizing:border-box;grid-template-rows:auto repeat(5,minmax(0,1fr))}
+html.fit .cell{aspect-ratio:auto;min-height:0}
+html.fit .hd.c{min-height:0}
+html.fit footer{display:none}
+
+/* draw students */
+.drawfab{display:flex;align-items:center;justify-content:center;gap:8px;font-family:var(--f-display);font-size:21px;color:#2a1c00;background:var(--gold);border:0;border-radius:999px;padding:10px 20px 10px 14px;min-height:52px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.drawfab svg{width:30px;height:30px}
+.drawfab:hover{filter:brightness(1.06)}
+.drawfab:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.lot{position:fixed;inset:0;z-index:18;display:flex;align-items:safe center;justify-content:center;overflow-y:auto;padding-block:16px;background:rgba(6,8,12,.72);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.lot .box:has(.ex[open]) .ball .num{width:96px;font-size:50px}
+.lot .box:has(.ex[open]) .ball .sub{display:none}
+.lot .box{width:min(640px,100%);margin-block:auto;background:var(--ink-2);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:18px}
+.lot h3{margin:0;font-family:var(--f-display);font-weight:400;font-size:30px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.lot h3 span{font-family:var(--f-ui);font-size:17px;color:var(--muted)}
+.balls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.ball{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;border-radius:16px;background:var(--ink);border:1px solid var(--line)}
+.ball .who{font-size:18px;padding:4px 12px;border-radius:999px}
+.ball.r .who{background:var(--red);color:#fff}.ball.c .who{background:var(--gold);color:#2a1c00}
+.ball .num{width:clamp(110px,22vw,160px);aspect-ratio:1/1;border-radius:50%;display:grid;place-items:center;background:var(--paper);color:var(--paper-ink);font-family:var(--f-en);font-weight:700;font-size:clamp(54px,11vw,84px);font-variant-numeric:tabular-nums;box-shadow:inset 0 -8px 0 rgba(0,0,0,.08)}
+.ball .num.rolling{color:#8a8072}
+.ball .num.pop{animation:pop .4s ease-out}
+@keyframes pop{0%{transform:scale(.7)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.ball .sub{font-size:16px;color:var(--muted)}
+.lot .hist{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:15px;color:var(--muted);min-height:30px}
+.lot .hist i{font-style:normal;font-family:var(--f-en);font-weight:600;font-size:14px;color:var(--fg);background:var(--ink);border:1px solid var(--line);border-radius:999px;padding:3px 9px;font-variant-numeric:tabular-nums}
+.lot .lmsg{min-height:22px;text-align:center;font-size:17px;color:var(--gold)}
+.lot .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.ex{border:1px solid var(--line);border-radius:12px;background:var(--ink)}
+.ex summary{cursor:pointer;padding:12px 14px;font-size:18px;list-style-position:inside}
+.ex summary span{color:var(--muted);font-size:16px}
+.ex summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px;border-radius:12px}
+.ex .body{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.ex p{margin:0;font-size:15px;color:var(--muted)}
+.exgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.exgrid button{font-family:var(--f-en);font-weight:700;font-size:18px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--ink-2);color:var(--fg);cursor:pointer;font-variant-numeric:tabular-nums;position:relative}
+.exgrid button[aria-pressed="true"]{background:#3a2626;border-color:#ff8a78;color:#ff8a78;text-decoration:line-through}
+.exgrid button.done{opacity:.55}
+.exgrid button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.ex .clear{align-self:flex-end}
+.ex .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+
+@media (prefers-reduced-motion:reduce){.cell.hit{animation:none}.hd,.cell .ninja{transition:none}.ball .num.pop{animation:none}}
+</style>
+<style>*,*::before,*::after{box-sizing:border-box}img{max-width:100%}</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ninja" viewBox="0 0 100 100">
+      <path d="M78 26 q14 -6 20 4 q-10 0 -16 6z" fill="#e0452f"/>
+      <circle cx="50" cy="52" r="44" fill="#17181d"/>
+      <rect x="10" y="24" width="80" height="9" rx="4" fill="#e0452f"/>
+      <rect x="20" y="42" width="60" height="24" rx="12" fill="#f3c9a2"/>
+      <ellipse cx="38" cy="54" rx="4.5" ry="5.5" fill="#17181d"/><ellipse cx="62" cy="54" rx="4.5" ry="5.5" fill="#17181d"/>
+    </symbol>
+    <symbol id="ninja-out" viewBox="0 0 100 100">
+      <path d="M78 26 q14 -6 20 4 q-10 0 -16 6z" fill="#8a8f99"/>
+      <circle cx="50" cy="52" r="44" fill="#55585f"/>
+      <rect x="10" y="24" width="80" height="9" rx="4" fill="#8a8f99"/>
+      <rect x="20" y="42" width="60" height="24" rx="12" fill="#cfc6bb"/>
+      <g stroke="#2a2b30" stroke-width="3.4" stroke-linecap="round"><path d="M33 49l9 10M42 49l-9 10M57 49l9 10M66 49l-9 10"/></g>
+    </symbol>
+    <symbol id="shuriken" viewBox="-50 -50 100 100">
+      <path d="M0-46 L9-9 L46 0 L9 9 L0 46 L-9 9 L-46 0 L-9-9Z" fill="#c9d0dc" stroke="#5b6375" stroke-width="3" stroke-linejoin="round"/>
+      <circle r="9" fill="#12151d" stroke="#5b6375" stroke-width="3"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg aria-hidden="true"><use href="#ninja"/></svg>
+      <h1>Ninja Reading Bingo<small>Lesson 10 · Mission Reading 문장 10개</small></h1>
+    </div>
+    <div class="tools">
+      <span class="score" aria-live="polite">OUT <b id="outCount">0</b> / 25</span>
+      <button class="btn" id="howto" type="button">놀이 방법</button>
+      <button class="btn" id="undo" type="button">한 칸 되돌리기</button>
+      <button class="btn" id="sound" type="button" aria-pressed="true">소리 켜짐</button>
+      <button class="btn" id="full" type="button">전체 화면</button>
+      <button class="btn" id="reset" type="button">새 게임</button>
+    </div>
+  </header>
+
+  <div class="status">
+    <div class="pick row"><span class="tag">가로 1~5</span><span class="txt empty" id="pickR">학생이 읽은 가로 문장을 누르세요</span></div>
+    <div class="pick col"><span class="tag">세로 6~10</span><span class="txt empty" id="pickC">학생이 읽은 세로 문장을 누르세요</span></div>
+    <div class="msg" id="msg" role="status">문장 두 개를 고르면 표창이 날아가요!</div>
+  </div>
+
+  <div class="stage">
+    <div class="board" id="board">
+      <div class="corner"><button class="drawfab" id="drawBtn" type="button" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></svg><span>번호 뽑기</span></button><div class="ar"><i class="c">세로 문장 ↓</i><i class="r">가로 문장 →</i></div></div>
+    </div>
+  </div>
+
+  <footer>
+    <span><b>진행</b> 학생이 가로 문장 하나와 세로 문장 하나를 읽으면, 두 문장을 차례로 누르세요.</span>
+    <span>두 문장이 만나는 칸에 닌자를 그린 학생은 그 닌자에 X 표시!</span>
+    <span>닌자 10명을 <b>가장 먼저 모두 없어지게 한 사람</b>이 "Ninja Bingo!"를 외치면 우승이에요.</span>
+  </footer>
+</div>
+
+<section class="intro" id="intro" aria-labelledby="introT">
+  <div class="in">
+    <h2 id="introT"><svg aria-hidden="true"><use href="#ninja"/></svg>How to Play<small>닌자 빙고 놀이 방법</small></h2>
+    <div class="cols">
+      <ol class="steps">
+        <li><span>활동지 표에서 마음에 드는 <em>10칸</em>을 골라 닌자를 그려요. (동그라미나 별도 좋아요)</span></li>
+        <li><span>선생님이 부른 친구가 <em>가로 문장 1개</em>와 <em>세로 문장 1개</em>를 소리 내어 읽어요.</span></li>
+        <li><span>두 문장이 만나는 칸으로 표창이 날아가요. 그 칸에 닌자가 있으면 <strong>탈락! X 표시</strong>를 해요.</span></li>
+        <li><span>탈락한 칸은 화면에 OUT으로 남아요. 같은 칸은 다시 고를 수 없어요.</span></li>
+        <li class="win"><span>내 닌자 10명을 <em>가장 먼저 모두 없어지게 한 사람</em>이 우승! "Ninja Bingo!"를 외쳐요.</span></li>
+      </ol>
+      <div class="demo">
+        <div class="cap">예시: 2번과 8번 문장을 읽었어요</div>
+        <div class="mini" id="mini" aria-label="예시 표: 닌자 10명 중 2번과 8번이 만나는 칸의 닌자가 탈락"></div>
+        <div class="res"><span>그린 닌자 <b>10</b></span><span>탈락 <b>1</b></span><span>우승까지 <b>9명</b> 남았어요</span></div>
+      </div>
+    </div>
+    <div class="go"><button class="btn red big" id="start" type="button">게임 시작!</button></div>
+  </div>
+</section>
+
+
+
+<div class="lot" id="lot" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="lotT">
+    <h3 id="lotT">읽을 친구 뽑기<span id="lotLeft">남은 번호 25개</span></h3>
+    <div class="balls">
+      <div class="ball r"><span class="who">가로 문장 1~5</span><div class="num" id="ballA" aria-live="polite">?</div><span class="sub">이 친구가 먼저 읽어요</span></div>
+      <div class="ball c"><span class="who">세로 문장 6~10</span><div class="num" id="ballB" aria-live="polite">?</div><span class="sub">이어서 이 친구가 읽어요</span></div>
+    </div>
+    <div class="lmsg" id="lotMsg" role="status"></div>
+    <div class="hist" id="lotHist">뽑힌 번호: 아직 없어요</div>
+    <details class="ex" id="exBox">
+      <summary>제외할 번호 고르기 <span id="exSum">(없음)</span></summary>
+      <div class="body">
+        <p>결석하거나 전출한 친구 번호를 누르면 뽑기에서 빠져요. 한 번 더 누르면 다시 들어가요.</p>
+        <div class="exgrid" id="exGrid"></div>
+        <div class="legend"><span>줄 그은 번호: 제외</span><span>흐린 번호: 이미 뽑힘</span></div>
+        <button class="btn clear" id="exClear" type="button">제외 모두 풀기</button>
+      </div>
+    </details>
+    <div class="row">
+      <button class="btn red big" id="lotAgain" type="button">뽑기</button>
+      <button class="btn" id="lotReset" type="button">번호 처음부터</button>
+      <button class="btn" id="lotClose" type="button">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="dlg" id="dlg" hidden>
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <div id="dlgT">모든 닌자를 다시 살리고 뽑은 번호도 처음부터 시작할까요?</div>
+    <div class="row"><button class="btn" id="no" type="button">취소</button><button class="btn red" id="yes" type="button">새 게임 시작</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+const ROWS=[
+  [1,"Where is the park?"],
+  [2,"Go straight and turn right."],
+  [3,"It’s next to the library."],
+  [4,"It’s on your right."],
+  [5,"Go straight two blocks and turn left."]
+];
+const COLS=[
+  [6,"Where is the bookstore?"],
+  [7,"It’s next to the ice cream shop."],
+  [8,"It’s next to the bank."],
+  [9,"It’s on your left."],
+  [10,"Where is the museum?"]
+];
+const KEY='ninja-bingo-l10';
+const board=document.getElementById('board');
+const msg=document.getElementById('msg'), pickR=document.getElementById('pickR'), pickC=document.getElementById('pickC');
+const outCount=document.getElementById('outCount'), undoBtn=document.getElementById('undo');
+let state={out:[],history:[],drawn:[],excluded:[]}, selR=null, selC=null, busy=false, soundOn=true;
+let scale=1, fitOn=false, wentFull=false;
+const MAX_NO=25;
+
+function load(){
+  const h=window.claude&&window.claude.hot&&window.claude.hot.data;
+  if(h&&h.out)state=h;
+  else{try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.out))state=s}catch(e){}}
+  if(!Array.isArray(state.drawn))state.drawn=[];
+  if(!Array.isArray(state.excluded))state.excluded=[];
+  if(!Array.isArray(state.history))state.history=[];
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+try{window.claude&&window.claude.hot&&window.claude.hot.snapshot&&window.claude.hot.snapshot(()=>state)}catch(e){}
+
+// build board
+const colBtns=[],rowBtns=[],cells={};
+COLS.forEach(([n,t],ci)=>{
+  const b=document.createElement('button');b.type='button';b.className='hd c';b.setAttribute('aria-pressed','false');
+  b.innerHTML='<span class="n">'+n+'</span><span>'+t+'</span>';
+  b.addEventListener('click',()=>choose('c',ci));board.appendChild(b);colBtns.push(b);
+});
+ROWS.forEach(([n,t],ri)=>{
+  const b=document.createElement('button');b.type='button';b.className='hd r';b.setAttribute('aria-pressed','false');
+  b.innerHTML='<span class="n">'+n+'</span><span>'+t+'</span>';
+  b.addEventListener('click',()=>choose('r',ri));board.appendChild(b);rowBtns.push(b);
+  COLS.forEach(([cn],ci)=>{
+    const d=document.createElement('div');d.className='cell';
+    d.setAttribute('aria-label','가로 '+n+'번, 세로 '+cn+'번 칸');
+    d.innerHTML='<span class="lbl">'+n+'·'+cn+'</span><svg class="ninja alive" viewBox="0 0 100 100" aria-hidden="true"><use href="#ninja"/></svg><svg class="ninja dead" viewBox="0 0 100 100" aria-hidden="true"><use href="#ninja-out"/></svg><svg class="stuck" viewBox="-50 -50 100 100" aria-hidden="true"><use href="#shuriken"/></svg><span class="stamp">OUT</span>';
+    board.appendChild(d);cells[ri+'-'+ci]=d;
+  });
+});
+
+function render(){
+  Object.entries(cells).forEach(([k,d])=>d.classList.toggle('out',state.out.includes(k)));
+  outCount.textContent=state.out.length;
+  undoBtn.disabled=!state.history.length;
+  rowBtns.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===selR)));
+  colBtns.forEach((b,i)=>b.setAttribute('aria-pressed',String(i===selC)));
+  Object.entries(cells).forEach(([k,d])=>{const [r,c]=k.split('-').map(Number);d.classList.toggle('lane-r',r===selR);d.classList.toggle('lane-c',c===selC)});
+  setPick(pickR,selR===null?null:ROWS[selR],'학생이 읽은 가로 문장을 누르세요');
+  setPick(pickC,selC===null?null:COLS[selC],'학생이 읽은 세로 문장을 누르세요');
+}
+function setPick(el,item,empty){
+  if(!item){el.textContent=empty;el.classList.add('empty')}else{el.textContent=item[0]+'. '+item[1];el.classList.remove('empty')}
+}
+function say(t,warn){msg.textContent=t;msg.classList.toggle('warn',!!warn)}
+
+function choose(kind,i){
+  if(busy)return;
+  if(kind==='r')selR=(selR===i?null:i);else selC=(selC===i?null:i);
+  render();
+  if(selR!==null&&selC!==null){
+    const k=selR+'-'+selC;
+    if(state.out.includes(k)){
+      say('이미 탈락한 칸이에요! ('+ROWS[selR][0]+'번 × '+COLS[selC][0]+'번) 다른 문장을 읽어 보세요.',true);
+      blink(cells[k]);
+      selR=selC=null;setTimeout(render,900);return;
+    }
+    fire(selR,selC);
+  }else{
+    say(selR!==null?'좋아요! 이제 세로 문장을 읽고 눌러 주세요.':selC!==null?'좋아요! 이제 가로 문장을 읽고 눌러 주세요.':'문장 두 개를 고르면 표창이 날아가요!');
+  }
+}
+function blink(d){d.animate([{opacity:1},{opacity:.35},{opacity:1},{opacity:.35},{opacity:1}],{duration:800})}
+
+function center(el){const b=board.getBoundingClientRect(),r=el.getBoundingClientRect();return{x:(r.left-b.left+r.width/2)/scale,y:(r.top-b.top+r.height/2)/scale}}
+function fire(r,c){
+  busy=true;const k=r+'-'+c,cell=cells[k];
+  say('표창 발사!');
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const to=center(cell);
+  const froms=[center(rowBtns[r]),center(colBtns[c])];
+  froms[0].x=rowBtns[r].offsetLeft+rowBtns[r].offsetWidth-10;
+  froms[1].y=colBtns[c].offsetTop+colBtns[c].offsetHeight-10;
+  whoosh();
+  const dur=reduce?1:620;
+  const anims=froms.map((f,i)=>{
+    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('viewBox','-50 -50 100 100');s.setAttribute('class','star');
+    s.innerHTML='<use href="#shuriken"/>';
+    s.style.left=f.x+'px';s.style.top=f.y+'px';
+    board.appendChild(s);
+    const dx=to.x-f.x,dy=to.y-f.y;
+    const a=s.animate([
+      {transform:'translate(0,0) rotate(0deg) scale(.7)',opacity:1},
+      {transform:'translate('+dx+'px,'+dy+'px) rotate('+(i?-900:900)+'deg) scale(1)',opacity:1}
+    ],{duration:dur,easing:'cubic-bezier(.3,.1,.6,1)',delay:i*90,fill:'forwards'});
+    return a.finished.then(()=>s.remove());
+  });
+  Promise.all(anims).then(()=>{
+    thud();
+    state.out.push(k);state.history.push(k);save();
+    selR=selC=null;
+    render();
+    if(!reduce){cell.classList.remove('hit');void cell.offsetWidth;cell.classList.add('hit');sparks(to)}
+    say(ROWS[r][0]+'번 × '+COLS[c][0]+'번 닌자 탈락! 활동지의 같은 칸을 확인하세요.');
+    if(state.out.length===25)say('모든 닌자가 탈락했어요! 새 게임을 눌러 다시 시작하세요.');
+    busy=false;
+  });
+}
+function sparks(p){
+  for(let i=0;i<10;i++){
+    const d=document.createElement('div');
+    d.style.cssText='position:absolute;width:8px;height:8px;border-radius:2px;background:var(--red);left:'+p.x+'px;top:'+p.y+'px;pointer-events:none';
+    board.appendChild(d);const ang=i/10*Math.PI*2,dist=40+Math.random()*30;
+    d.animate([{transform:'translate(-4px,-4px) rotate(0)',opacity:1},{transform:'translate('+(Math.cos(ang)*dist-4)+'px,'+(Math.sin(ang)*dist-4)+'px) rotate(180deg)',opacity:0}],{duration:520,easing:'ease-out'}).finished.then(()=>d.remove());
+  }
+}
+
+// sound (Web Audio, starts after the first click)
+let ac=null;
+function ctx(){if(!soundOn)return null;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac}catch(e){return null}}
+function whoosh(){const a=ctx();if(!a)return;const len=.5,b=a.createBuffer(1,a.sampleRate*len,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);const s=a.createBufferSource();s.buffer=b;const f=a.createBiquadFilter();f.type='bandpass';f.Q.value=1.2;f.frequency.setValueAtTime(600,a.currentTime);f.frequency.exponentialRampToValueAtTime(3200,a.currentTime+len);const g=a.createGain();g.gain.value=.35;s.connect(f).connect(g).connect(a.destination);s.start()}
+function thud(){const a=ctx();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.setValueAtTime(220,a.currentTime);o.frequency.exponentialRampToValueAtTime(60,a.currentTime+.2);g.gain.setValueAtTime(.5,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.25);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.26)}
+
+document.getElementById('sound').addEventListener('click',e=>{soundOn=!soundOn;e.currentTarget.setAttribute('aria-pressed',String(soundOn));e.currentTarget.textContent=soundOn?'소리 켜짐':'소리 꺼짐'});
+undoBtn.addEventListener('click',()=>{if(busy||!state.history.length)return;const k=state.history.pop();state.out=state.out.filter(x=>x!==k);save();render();const [r,c]=k.split('-').map(Number);say(ROWS[r][0]+'번 × '+COLS[c][0]+'번 칸을 되돌렸어요.')});
+// full screen: ask the browser for full screen, and scale the whole game to fill whatever space there is
+const wrapEl=document.querySelector('.wrap'), fullBtn=document.getElementById('full');
+function fit(){
+  if(!fitOn){wrapEl.style.transform='';wrapEl.style.left='';wrapEl.style.top='';wrapEl.style.height='';scale=1;return}
+  // lay the game out at 1320px wide with the screen's own proportions, then scale it to fill the screen
+  const vw=window.innerWidth,vh=window.innerHeight,W=1320,H=Math.max(700,Math.round(W*vh/vw));
+  wrapEl.style.transform='none';wrapEl.style.height=H+'px';
+  scale=Math.min(vw/W,vh/H);
+  wrapEl.style.left=((vw-W*scale)/2)+'px';wrapEl.style.top=((vh-H*scale)/2)+'px';
+  wrapEl.style.transform='scale('+scale+')';
+}
+function setFit(on){
+  fitOn=on;document.documentElement.classList.toggle('fit',on);
+  fullBtn.textContent=on?'전체 화면 끝내기':'전체 화면';
+  fit();requestAnimationFrame(fit);
+}
+fullBtn.addEventListener('click',()=>{
+  if(fitOn){
+    setFit(false);
+    try{if(document.fullscreenElement)document.exitFullscreen()}catch(e){}
+    return;
+  }
+  setFit(true);
+  const el=document.documentElement;
+  try{
+    if(el.requestFullscreen)el.requestFullscreen().then(()=>{wentFull=true;setTimeout(fit,60)}).catch(()=>{});
+  }catch(e){}
+});
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement&&wentFull){wentFull=false;if(fitOn)setFit(false)}
+  else setTimeout(fit,60);
+});
+window.addEventListener('resize',()=>{if(fitOn)fit()});
+const dlg=document.getElementById('dlg');
+document.getElementById('reset').addEventListener('click',()=>{dlg.hidden=false;document.getElementById('no').focus()});
+document.getElementById('no').addEventListener('click',()=>{dlg.hidden=true});
+document.getElementById('yes').addEventListener('click',()=>{state={out:[],history:[],drawn:[],excluded:state.excluded||[]};selR=selC=null;save();dlg.hidden=true;render();renderLot();say('새 게임 시작! 문장 두 개를 고르면 표창이 날아가요.')});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(!dlg.hidden)dlg.hidden=true;else if(!lot.hidden)closeLot()});
+
+// draw two readers from 1–25, never repeating until every number has had a turn
+const lot=document.getElementById('lot'), ballA=document.getElementById('ballA'), ballB=document.getElementById('ballB');
+const lotMsg=document.getElementById('lotMsg'), lotHist=document.getElementById('lotHist'), lotLeft=document.getElementById('lotLeft');
+const lotAgain=document.getElementById('lotAgain'), drawBtn=document.getElementById('drawBtn');
+const exBox=document.getElementById('exBox'), exSum=document.getElementById('exSum'), exGrid=document.getElementById('exGrid');
+const exBtns=[];
+for(let n=1;n<=MAX_NO;n++){
+  const b=document.createElement('button');b.type='button';b.textContent=n;b.setAttribute('aria-pressed','false');
+  b.addEventListener('click',()=>{if(rolling)return;const i=state.excluded.indexOf(n);if(i>=0)state.excluded.splice(i,1);else state.excluded.push(n);save();renderLot();lotMsg.textContent=state.excluded.includes(n)?n+'번은 뽑기에서 빠져요.':n+'번이 다시 뽑기에 들어가요.'});
+  exGrid.appendChild(b);exBtns.push(b);
+}
+document.getElementById('exClear').addEventListener('click',()=>{if(rolling)return;state.excluded=[];save();renderLot();lotMsg.textContent='제외한 번호를 모두 풀었어요.'});
+let rolling=false;
+function pool(){const p=[];for(let i=1;i<=MAX_NO;i++)if(!state.drawn.includes(i)&&!state.excluded.includes(i))p.push(i);return p}
+function renderLot(){
+  const left=pool().length;
+  lotLeft.textContent='남은 번호 '+left+'개';
+  lotHist.innerHTML=state.drawn.length?'뽑힌 번호: '+state.drawn.map(n=>'<i>'+n+'</i>').join(''):'뽑힌 번호: 아직 없어요';
+  lotAgain.disabled=rolling||left===0;
+  lotAgain.textContent=state.drawn.length?'다시 뽑기':'뽑기';
+  const ex=state.excluded.slice().sort((a,b)=>a-b);
+  exSum.textContent=ex.length?'('+ex.join(', ')+'번 제외)':'(없음)';
+  exBtns.forEach((b,i)=>{const n=i+1;b.setAttribute('aria-pressed',String(ex.includes(n)));b.classList.toggle('done',state.drawn.includes(n));b.disabled=rolling;b.setAttribute('aria-label',n+'번'+(ex.includes(n)?' 제외됨':'')+(state.drawn.includes(n)?' 이미 뽑힘':''))});
+}
+function tick(){const a=ctx();if(!a)return;const o=a.createOscillator(),g=a.createGain();o.type='square';o.frequency.value=880;g.gain.setValueAtTime(.06,a.currentTime);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+.05);o.connect(g).connect(a.destination);o.start();o.stop(a.currentTime+.06)}
+function ding(){const a=ctx();if(!a)return;[660,990].forEach((f,i)=>{const o=a.createOscillator(),g=a.createGain();o.type='sine';o.frequency.value=f;const t=a.currentTime+i*.12;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.connect(g).connect(a.destination);o.start(t);o.stop(t+.42)})}
+function draw(){
+  if(rolling)return;
+  const p=pool();
+  if(!p.length){lotMsg.textContent='뽑을 수 있는 번호가 없어요. “번호 처음부터”를 누르거나 제외 번호를 확인해 주세요.';renderLot();return}
+  const pick=[];const q=p.slice();
+  while(pick.length<2&&q.length){pick.push(q.splice(Math.floor(Math.random()*q.length),1)[0])}
+  rolling=true;renderLot();lotMsg.textContent='두구두구…';
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  [ballA,ballB].forEach(b=>{b.classList.remove('pop');b.classList.add('rolling')});
+  const show=()=>{ballA.textContent=p[Math.floor(Math.random()*p.length)];ballB.textContent=pick.length>1?p[Math.floor(Math.random()*p.length)]:'–';tick()};
+  let n=0;const steps=reduce?1:14;
+  const run=()=>{
+    if(n<steps){show();n++;setTimeout(run,50+n*9);return}
+    state.drawn.push(...pick);save();
+    ballA.textContent=pick[0];ballB.textContent=pick[1]!==undefined?pick[1]:'–';
+    [ballA,ballB].forEach(b=>{b.classList.remove('rolling');void b.offsetWidth;b.classList.add('pop')});
+    ding();rolling=false;renderLot();
+    lotMsg.textContent=pick.length>1?pick[0]+'번 친구는 가로 문장, '+pick[1]+'번 친구는 세로 문장을 읽어요!':pick[0]+'번 친구가 마지막이에요. 가로·세로 문장을 둘 다 읽어 주세요!';
+    say(pick.length>1?'읽을 친구: '+pick[0]+'번(가로) · '+pick[1]+'번(세로)':'읽을 친구: '+pick[0]+'번');
+  };
+  run();
+}
+function openLot(){
+  lot.hidden=false;
+  if(state.drawn.length){draw()}
+  else{exBox.open=true;ballA.textContent='?';ballB.textContent='?';lotMsg.textContent='결석·전출한 친구 번호를 빼고 “뽑기”를 누르세요.';renderLot()}
+  lotAgain.focus();
+}
+function closeLot(){if(rolling)return;lot.hidden=true;drawBtn.focus()}
+drawBtn.addEventListener('click',openLot);
+lotAgain.addEventListener('click',draw);
+document.getElementById('lotClose').addEventListener('click',closeLot);
+document.getElementById('lotReset').addEventListener('click',()=>{if(rolling)return;state.drawn=[];save();ballA.textContent='?';ballB.textContent='?';lotMsg.textContent='번호를 처음부터 다시 뽑아요.';renderLot()});
+lot.addEventListener('click',e=>{if(e.target===lot)closeLot()});
+renderLot();
+
+// how-to screen: example sheet with 8 ninjas, row 2 x column 8 knocked out
+const mini=document.getElementById('mini'), intro=document.getElementById('intro'), startBtn=document.getElementById('start');
+const demoNinjas=['0-1','0-4','1-2','2-0','2-3','2-4','3-1','3-4','4-1','4-2'];
+let mh='<div class="h"></div>';
+COLS.forEach(([n],ci)=>{mh+='<div class="'+(ci===2?'hc':'h')+'">'+n+'</div>'});
+ROWS.forEach(([n],ri)=>{
+  mh+='<div class="'+(ri===1?'hr':'h')+'">'+n+'</div>';
+  COLS.forEach((_,ci)=>{
+    const k=ri+'-'+ci,has=demoNinjas.includes(k),hit=(ri===1&&ci===2);
+    mh+='<div class="c'+(ri===1?' lr':'')+(ci===2?' lc':'')+(hit?' x':'')+'">'+(has?'<svg viewBox="0 0 100 100" aria-hidden="true"><use href="#'+(hit?'ninja-out':'ninja')+'"/></svg>':'')+'</div>';
+  });
+});
+mini.innerHTML=mh;
+function openIntro(){intro.hidden=false;startBtn.textContent=state.out.length?'게임 계속하기':'게임 시작!';startBtn.focus()}
+startBtn.addEventListener('click',()=>{intro.hidden=true;document.getElementById('howto').focus()});
+document.getElementById('howto').addEventListener('click',openIntro);
+openIntro();
+
+load();render();
+})();
+</script>
+
+</body>
+</html>
