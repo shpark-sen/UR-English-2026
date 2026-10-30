@@ -277,7 +277,7 @@ function renderGrid(){
   $('#grid').innerHTML = list.map(a => {
     const web = a.kind !== 'pptx';
     const btn = web
-      ? `<a class="btn primary" href="${esc(a.file)}">${ICON.play}시작하기</a>`
+      ? `<a class="btn primary" href="${esc(a.file)}" target="_blank" rel="noopener">${ICON.play}시작하기</a>`
       : `<a class="btn primary" href="${esc(a.file)}" download>${ICON.down}PPT 열기</a>`;
     return `
     <article class="card" style="--c:${esc(a.color || '#2F5DA8')}">
