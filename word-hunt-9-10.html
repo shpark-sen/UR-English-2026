@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>영어 9·10단원 단어 찾기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Jua&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: puzzle board left, two unit word lists right (stacks on phone). House = unit 9 (blue), Map = unit 10 (green). */
+:root{
+  --bg:#eef3f8; --panel:#ffffff; --ink:#1d2a3a; --muted:#5d6b7c; --line:#d4dde8;
+  --cell:#f7f9fc; --cell-hover:#e3ebf5;
+  --u9:#3f6fd8; --u9-soft:#d9e4fb; --u10:#14966b; --u10-soft:#d3f1e5;
+  --sel:#f5b53d; --sel-ink:#3a2700; --bad:#d94b4b;
+  --f-display:"Jua","Gowun Dodum",system-ui,sans-serif;
+  --f-body:"Gowun Dodum",system-ui,sans-serif;
+  --f-grid:"Fredoka","Jua",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121924; --panel:#1b2433; --ink:#e8eef6; --muted:#9aa8ba; --line:#2d3a4e;
+  --cell:#222d3f; --cell-hover:#2c3a51;
+  --u9:#7da2f5; --u9-soft:#25365c; --u10:#4fd1a2; --u10-soft:#173d33;
+  --sel:#f5b53d; --sel-ink:#2a1c00; --bad:#ff7a7a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121924; --panel:#1b2433; --ink:#e8eef6; --muted:#9aa8ba; --line:#2d3a4e;
+  --cell:#222d3f; --cell-hover:#2c3a51;
+  --u9:#7da2f5; --u9-soft:#25365c; --u10:#4fd1a2; --u10-soft:#173d33;
+  --sel:#f5b53d; --sel-ink:#2a1c00; --bad:#ff7a7a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(26px,4.4vw,38px);margin:0;line-height:1.1;text-wrap:balance}
+h1 .n9{color:var(--u9)} h1 .n10{color:var(--u10)}
+.sub{margin:6px 0 0;color:var(--muted);font-size:15px}
+.stats{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chip{font-family:var(--f-grid);font-weight:600;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-variant-numeric:tabular-nums;font-size:15px}
+.chip b{font-size:18px}
+button{font-family:var(--f-display);font-size:16px;border:0;border-radius:12px;padding:9px 16px;cursor:pointer;background:var(--ink);color:var(--bg)}
+button.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+button:focus-visible,.cell:focus-visible{outline:3px solid var(--sel);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.board{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(8px,2vw,18px);min-width:0}
+.status{min-height:28px;margin:0 0 10px;font-family:var(--f-display);font-size:18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status .cur{font-family:var(--f-grid);font-weight:700;letter-spacing:.12em;background:var(--sel);color:var(--sel-ink);border-radius:8px;padding:1px 10px}
+.status.bad{color:var(--bad)}
+.grid{display:grid;gap:clamp(2px,.5vw,5px);user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.cell{aspect-ratio:1;max-width:100%;display:grid;place-items:center;border:0;border-radius:clamp(4px,1vw,9px);
+  background:var(--cell);color:var(--ink);font-family:var(--f-grid);font-weight:600;font-size:clamp(13px,2.6vw,24px);padding:0;
+  transition:background .12s, transform .12s}
+.cell:hover{background:var(--cell-hover)}
+.cell.u9{background:var(--u9-soft);color:var(--u9)}
+.cell.u10{background:var(--u10-soft);color:var(--u10)}
+.cell.both{background:linear-gradient(135deg,var(--u9-soft) 50%,var(--u10-soft) 50%)}
+.cell.sel{background:var(--sel);color:var(--sel-ink);transform:scale(1.06)}
+.cell.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.help{margin:12px 2px 0;color:var(--muted);font-size:14px;line-height:1.55}
+.lists{display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:860px) and (min-width:560px){.lists{display:grid;grid-template-columns:1fr 1fr}}
+.unit{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px}
+.unit h2{margin:0 0 2px;font-family:var(--f-display);font-weight:400;font-size:19px;display:flex;justify-content:space-between;gap:8px}
+.unit h2 small{font-family:var(--f-grid);font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.unit .topic{margin:0 0 10px;color:var(--muted);font-size:13px;font-family:var(--f-grid)}
+.u9 h2{color:var(--u9)} .u10-list h2{color:var(--u10)}
+ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+li{display:flex;flex-direction:column;padding:5px 8px;border-radius:9px;min-width:0}
+li .en{font-family:var(--f-grid);font-weight:600;font-size:16px}
+li .ko{font-size:13px;color:var(--muted)}
+li.found .en{text-decoration:line-through;text-decoration-thickness:2px}
+.unit.u9 li.found{background:var(--u9-soft)} .unit.u9 li.found .en{color:var(--u9)}
+.unit.u10-list li.found{background:var(--u10-soft)} .unit.u10-list li.found .en{color:var(--u10)}
+body.hint-ko li:not(.found) .en{visibility:hidden}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--u10)}
+.done{background:var(--panel);border:2px solid var(--u10);border-radius:18px;padding:18px;text-align:center}
+.done h2{font-family:var(--f-display);font-weight:400;margin:0 0 6px;font-size:26px}
+.done p{margin:0 0 12px;color:var(--muted)}
+.start{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:clamp(18px,4vw,32px);display:flex;flex-direction:column;gap:18px}
+.start h2{margin:0;font-family:var(--f-display);font-weight:400;font-size:24px}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.mode{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;padding:18px 20px;border-radius:16px;font-family:var(--f-body);font-size:15px;line-height:1.5}
+.mode .mt{font-family:var(--f-display);font-size:24px}
+.mode .ex{font-family:var(--f-grid);font-weight:600;font-size:14px;border-radius:8px;padding:4px 10px;background:var(--panel);color:var(--ink)}
+.mode.basic{background:var(--u9-soft);color:var(--ink);border:2px solid var(--u9)}
+.mode.basic .mt{color:var(--u9)}
+.mode.hard{background:var(--u10-soft);color:var(--ink);border:2px solid var(--u10)}
+.mode.hard .mt{color:var(--u10)}
+.mode:hover{transform:translateY(-2px)}
+.modeTag{font-family:var(--f-display);font-size:14px;border-radius:999px;padding:3px 10px;background:var(--u9-soft);color:var(--u9)}
+body.hint-ko .modeTag{background:var(--u10-soft);color:var(--u10)}
+.modebox{margin-top:12px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+@media (prefers-reduced-motion:reduce){.cell{transition:none}.cell.sel{transform:none}.cell.shake{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="n9">9단원</span>·<span class="n10">10단원</span> 단어 찾기</h1>
+      <p class="sub">숨어 있는 영어 단어 20개를 찾아보세요. 가로, 세로, 대각선으로 숨어 있어요.</p>
+    </div>
+    <div class="stats" id="stats" hidden>
+      <span class="modeTag" id="modeTag">기본 모드</span>
+      <span class="chip">찾은 단어 <b id="count">0</b> / 20</span>
+      <span class="chip" id="timer">00:00</span>
+      <button id="newBtn" type="button">새 퍼즐</button>
+    </div>
+  </header>
+
+  <section class="start" id="start">
+    <h2>모드를 골라 주세요</h2>
+    <div class="modes">
+      <button type="button" class="mode basic" id="modeBasic">
+        <span class="mt">기본 모드</span>
+        <span>찾을 단어의 영어 철자와 뜻을 함께 보여 줘요.</span>
+        <span class="ex">bedroom · 침실</span>
+      </button>
+      <button type="button" class="mode hard" id="modeHard">
+        <span class="mt">도전 모드</span>
+        <span>뜻만 보고 영어 단어를 떠올려 찾아요. 찾은 단어는 철자가 보여요.</span>
+        <span class="ex">? ? ? · 침실</span>
+      </button>
+    </div>
+  </section>
+
+  <div class="done" id="done" hidden>
+    <h2>20개 모두 찾았어요! 🎉</h2>
+    <p id="doneMsg"></p>
+    <button id="againBtn" type="button">다시 하기</button>
+  </div>
+
+  <div class="main" id="main" hidden>
+    <section class="board" aria-label="단어 퍼즐">
+      <div class="status" id="status" aria-live="polite">첫 글자를 클릭해서 시작하세요.</div>
+      <div class="grid" id="grid"></div>
+      <p class="help">단어의 <b>첫 글자부터 마지막 글자까지 순서대로</b> 한 칸씩 클릭하세요. 이어지는 글자는 한 방향(가로·세로·대각선)으로 붙어 있어야 해요. 마지막에 고른 글자를 다시 누르면 취소되고, 떨어진 칸을 누르면 거기서 새로 시작해요.</p>
+      <div class="modebox">
+        <label class="toggle"><input type="checkbox" id="hintKo"> 도전 모드 (체크를 풀면 영어 철자가 다시 보여요)</label>
+        <button class="ghost" id="clearBtn" type="button">선택 지우기</button>
+      </div>
+    </section>
+
+    <aside class="lists">
+      <div class="unit u9">
+        <h2>Lesson 9 <small id="c9">0/10</small></h2>
+        <p class="topic">What's in the Bedroom?</p>
+        <ul id="list9"></ul>
+      </div>
+      <div class="unit u10-list">
+        <h2>Lesson 10 <small id="c10">0/10</small></h2>
+        <p class="topic">Where Is the Bookstore?</p>
+        <ul id="list10"></ul>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const WORDS = [
+  {w:"BEDROOM",show:"bedroom",ko:"침실",u:9},
+  {w:"LIVINGROOM",show:"living room",ko:"거실",u:9},
+  {w:"BATHROOM",show:"bathroom",ko:"욕실",u:9},
+  {w:"KITCHEN",show:"kitchen",ko:"부엌",u:9},
+  {w:"GARDEN",show:"garden",ko:"정원",u:9},
+  {w:"BOOKSHELF",show:"bookshelf",ko:"책장",u:9},
+  {w:"BATHTUB",show:"bathtub",ko:"욕조",u:9},
+  {w:"GUITAR",show:"guitar",ko:"기타",u:9},
+  {w:"SOFA",show:"sofa",ko:"소파",u:9},
+  {w:"TABLE",show:"table",ko:"탁자",u:9},
+  {w:"BOOKSTORE",show:"bookstore",ko:"서점",u:10},
+  {w:"LIBRARY",show:"library",ko:"도서관",u:10},
+  {w:"MUSEUM",show:"museum",ko:"박물관",u:10},
+  {w:"BANK",show:"bank",ko:"은행",u:10},
+  {w:"PARK",show:"park",ko:"공원",u:10},
+  {w:"BRIDGE",show:"bridge",ko:"다리",u:10},
+  {w:"BLOCK",show:"block",ko:"블록, 구역",u:10},
+  {w:"STRAIGHT",show:"straight",ko:"똑바로",u:10},
+  {w:"CROSS",show:"cross",ko:"건너다",u:10},
+  {w:"TICKETOFFICE",show:"ticket office",ko:"매표소",u:10},
+];
+const N = 14;
+const DIRS = [[0,1],[1,0],[1,1],[-1,1]]; // 가로, 세로, 대각선(↘), 대각선(↗)
+const ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+let grid, placed, found, sel, cellEls, start, tick, cellUnits;
+
+function build(){
+  for(let attempt=0; attempt<200; attempt++){
+    const g = Array.from({length:N},()=>Array(N).fill(null));
+    const pl = {};
+    const order = [...WORDS].sort((a,b)=>b.w.length-a.w.length);
+    let ok = true;
+    for(const item of order){
+      let done=false;
+      for(let t=0;t<400 && !done;t++){
+        const [dr,dc] = DIRS[Math.floor(Math.random()*DIRS.length)];
+        const L = item.w.length;
+        const r0 = Math.floor(Math.random()*N), c0 = Math.floor(Math.random()*N);
+        const rEnd = r0+dr*(L-1), cEnd = c0+dc*(L-1);
+        if(rEnd<0||rEnd>=N||cEnd<0||cEnd>=N) continue;
+        let fits = true;
+        for(let i=0;i<L;i++){const ch=g[r0+dr*i][c0+dc*i]; if(ch!==null && ch!==item.w[i]){fits=false;break}}
+        if(!fits) continue;
+        const cells=[];
+        for(let i=0;i<L;i++){g[r0+dr*i][c0+dc*i]=item.w[i]; cells.push([r0+dr*i,c0+dc*i]);}
+        pl[item.w]=cells; done=true;
+      }
+      if(!done){ok=false;break}
+    }
+    if(!ok) continue;
+    for(let r=0;r<N;r++)for(let c=0;c<N;c++) if(g[r][c]===null) g[r][c]=ABC[Math.floor(Math.random()*26)];
+    return {g,pl};
+  }
+}
+
+function render(){
+  const gEl = document.getElementById('grid');
+  gEl.style.gridTemplateColumns = `repeat(${N}, minmax(0,1fr))`;
+  gEl.innerHTML = '';
+  cellEls = [];
+  for(let r=0;r<N;r++){
+    cellEls.push([]);
+    for(let c=0;c<N;c++){
+      const b = document.createElement('button');
+      b.type='button'; b.className='cell'; b.textContent=grid[r][c];
+      b.id=`cell-${r}-${c}`;
+      b.setAttribute('aria-label',`${r+1}행 ${c+1}열 ${grid[r][c]}`);
+      b.addEventListener('click',()=>clickCell(r,c));
+      gEl.appendChild(b); cellEls[r].push(b);
+    }
+  }
+  for(const u of [9,10]){
+    const ul = document.getElementById('list'+u); ul.innerHTML='';
+    WORDS.filter(x=>x.u===u).forEach(x=>{
+      const li=document.createElement('li'); li.id='w-'+x.w;
+      li.innerHTML=`<span class="en">${x.show}</span><span class="ko">${x.ko}</span>`;
+      ul.appendChild(li);
+    });
+  }
+}
+
+function setStatus(html,bad){const s=document.getElementById('status'); s.innerHTML=html; s.classList.toggle('bad',!!bad);}
+function showSel(){
+  cellEls.flat().forEach(e=>e.classList.remove('sel'));
+  sel.forEach(([r,c])=>cellEls[r][c].classList.add('sel'));
+  if(sel.length) setStatus(`선택한 글자: <span class="cur">${sel.map(([r,c])=>grid[r][c]).join('')}</span>`);
+  else setStatus('첫 글자를 클릭해서 시작하세요.');
+}
+
+function clickCell(r,c){
+  if(!start){start=Date.now(); tick=setInterval(updTimer,1000);}
+  const last = sel[sel.length-1];
+  if(last && last[0]===r && last[1]===c){sel.pop(); showSel(); return;}
+  if(sel.some(([a,b])=>a===r&&b===c)){ sel=[[r,c]]; showSel(); return; }
+  if(!last){sel=[[r,c]];}
+  else{
+    const dr=r-last[0], dc=c-last[1];
+    const adjacent = Math.abs(dr)<=1 && Math.abs(dc)<=1;
+    let okDir = adjacent;
+    if(adjacent && sel.length>=2){
+      const p=sel[sel.length-2];
+      okDir = (last[0]-p[0])===dr && (last[1]-p[1])===dc;
+    }
+    if(okDir) sel.push([r,c]); else sel=[[r,c]];
+  }
+  showSel();
+  check();
+}
+
+function check(){
+  const word = sel.map(([r,c])=>grid[r][c]).join('');
+  const item = WORDS.find(x=>x.w===word && !found.has(x.w));
+  if(item){
+    found.add(item.w);
+    sel.forEach(([r,c])=>{
+      const set = cellUnits[r][c]; set.add(item.u);
+      const el=cellEls[r][c]; el.classList.remove('u9','u10','both');
+      el.classList.add(set.size>1?'both':('u'+item.u));
+    });
+    document.getElementById('w-'+item.w).classList.add('found');
+    sel=[]; showSel();
+    setStatus(`찾았어요! <span class="cur">${item.show}</span> ${item.ko}`);
+    updCount();
+  } else if(sel.length>=12){
+    sel.forEach(([r,c])=>{const e=cellEls[r][c]; e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake');});
+    setStatus('이 줄에는 찾는 단어가 없어요. 다시 골라 보세요.',true);
+    sel=[]; setTimeout(showSel,700);
+  }
+}
+
+function updCount(){
+  document.getElementById('count').textContent=found.size;
+  for(const u of [9,10]) document.getElementById('c'+u).textContent=WORDS.filter(x=>x.u===u&&found.has(x.w)).length+'/10';
+  if(found.size===WORDS.length){
+    clearInterval(tick);
+    const t=document.getElementById('timer').textContent;
+    document.getElementById('doneMsg').textContent=`걸린 시간 ${t}. 9단원 집 안 장소와 10단원 길 찾기 단어를 모두 찾았어요.`;
+    document.getElementById('done').hidden=false;
+    setStatus('모두 찾았어요! 정말 잘했어요.');
+  }
+}
+function updTimer(){
+  const s=Math.floor((Date.now()-start)/1000);
+  document.getElementById('timer').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+}
+
+function newGame(){
+  const res=build(); grid=res.g; placed=res.pl;
+  found=new Set(); sel=[]; start=null; clearInterval(tick);
+  cellUnits=Array.from({length:N},()=>Array.from({length:N},()=>new Set()));
+  document.getElementById('timer').textContent='00:00';
+  document.getElementById('done').hidden=true;
+  render(); updCount(); showSel();
+}
+
+document.getElementById('newBtn').addEventListener('click',newGame);
+function setMode(hard){
+  document.body.classList.toggle('hint-ko',hard);
+  document.getElementById('hintKo').checked=hard;
+  document.getElementById('modeTag').textContent=hard?'도전 모드':'기본 모드';
+}
+function showStart(){
+  clearInterval(tick);
+  document.getElementById('start').hidden=false;
+  document.getElementById('main').hidden=true;
+  document.getElementById('stats').hidden=true;
+  document.getElementById('done').hidden=true;
+}
+function begin(hard){
+  setMode(hard); newGame();
+  document.getElementById('start').hidden=true;
+  document.getElementById('main').hidden=false;
+  document.getElementById('stats').hidden=false;
+}
+document.getElementById('modeBasic').addEventListener('click',()=>begin(false));
+document.getElementById('modeHard').addEventListener('click',()=>begin(true));
+document.getElementById('againBtn').addEventListener('click',showStart);
+document.getElementById('clearBtn').addEventListener('click',()=>{sel=[];showSel();});
+document.getElementById('hintKo').addEventListener('change',e=>setMode(e.target.checked));
+newGame();
+</script>
+</body>
+</html>
