@@ -147,6 +147,18 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
 .go{margin-top:12px;width:100%;border:0;border-radius:16px;padding:12px;background:var(--coral);color:#fff;font-family:var(--display);font-size:22px}
 .go:disabled{background:var(--line);color:var(--muted);cursor:default}
 
+/* listen */
+.listen{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.lbtn{border:0;border-radius:999px;padding:.45em 1.1em;font-family:var(--display);font-size:clamp(16px,1.6vw,20px);background:var(--mint);color:#fff}
+.vsel{display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.vsel select{max-width:240px;border:2px solid var(--line);border-radius:10px;padding:4px 8px;background:var(--paper);color:var(--ink);font:inherit}
+.vnote{font-size:13px;color:var(--muted)}
+.sent{position:relative}
+.sent .stx{min-width:0}
+.spk{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:2px solid var(--line);background:var(--paper);border-radius:50%;width:clamp(38px,3.4vw,52px);height:clamp(38px,3.4vw,52px);font-family:var(--emoji);font-size:clamp(17px,1.6vw,24px);display:grid;place-items:center}
+.spk:hover{border-color:var(--mint)}
+.final .sent{padding-right:clamp(60px,5.5vw,80px)}
+.sent.talk{border-color:var(--mint);background:var(--mint-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--mint) 35%,transparent)}
 /* share to Padlet */
 .share{margin-top:14px;border:2px dashed color-mix(in srgb,var(--sky) 40%,var(--line));border-radius:18px;padding:14px;text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
 .share-t{margin:0;font-family:var(--display);font-size:clamp(17px,1.8vw,22px)}
@@ -864,7 +876,12 @@ function bookHtml(final){
   return `<div class="bt"><span class="tag">GRADE 5 ENGLISH · MY FUTURE DREAM</span><h2>MY DREAM BOOK</h2><p>What do you want to be?</p></div>
     <div class="hero"><div class="av">${c ? c.e : "🌟"}</div><div><span class="lab">나의 꿈 (My Dream)</span>
       <div class="job">${en ? esc(article(en)+" "+en) : "?"}</div><div class="jk">${esc(S.jobKo || "직업을 골라요")}</div></div></div>
-    <ol class="sents">${ss.map((s,i)=>`<li class="sent ${s.ok?"ok":""}"><span class="num">${i+1}</span><div><div class="en">${s.en}</div><div class="ko">${s.ko}</div></div></li>`).join("")}</ol>
+    ${final ? `<div class="listen" id="listen">
+        <button type="button" class="lbtn all" id="playAll">🔊 전체 듣기</button>
+        <label class="vsel"><span>목소리</span><select id="voiceSel" aria-label="목소리 고르기"></select></label>
+        <span class="vnote" id="vnote"></span>
+      </div>` : ""}
+    <ol class="sents">${ss.map((s,i)=>`<li class="sent ${s.ok?"ok":""}" data-i="${i}"><span class="num">${i+1}</span><div class="stx"><div class="en">${s.en}</div><div class="ko">${s.ko}</div></div>${final ? `<button type="button" class="spk" data-i="${i}" aria-label="${i+1}번 문장 듣기">🔊</button>` : ""}</li>`).join("")}</ol>
     ${final ? `<div class="note">✏️ 공책에 내 글을 또박또박 옮겨 쓰고 선생님께 검사 받아요!</div>
       <div class="share">
         <p class="share-t">📌 우리 반 패들렛에도 올려 볼까요?</p>
@@ -885,11 +902,65 @@ function renderBook(){
 function showFinal(){
   $("maker").hidden = true; const f = $("final"); f.hidden = false;
   f.innerHTML = `<div class="book">${bookHtml(true)}</div>`;
-  $("editBtn").onclick = () => { f.hidden = true; $("maker").hidden = false; };
+  $("editBtn").onclick = () => { if (TTS.ok) speechSynthesis.cancel(); f.hidden = true; $("maker").hidden = false; };
   $("newBtn").onclick = () => { f.hidden = true; $("maker").hidden = false; resetAll(); };
   $("copyBtn").onclick = copyImage;
+  setupListen();
   scrollTo(0,0);
 }
+
+// ---------- 원어민 발음으로 듣기 (브라우저 음성) ----------
+const TTS = { voices: [], voice: null, ok: typeof window.speechSynthesis !== "undefined" && typeof window.SpeechSynthesisUtterance !== "undefined" };
+function voiceScore(v){
+  let s = 0; const n = v.name;
+  if (/natural/i.test(n)) s += 10;                 // Edge의 자연스러운 온라인 음성
+  if (/online/i.test(n)) s += 3;
+  if (/google/i.test(n)) s += 6;                   // Chrome의 Google 음성
+  if (/(aria|jenny|ava|emma|guy|andrew|samantha|allison|susan|zira)/i.test(n)) s += 3;
+  if (/^en[-_]US/i.test(v.lang)) s += 2; else if (/^en[-_]GB/i.test(v.lang)) s += 1;
+  return s;
+}
+function loadVoices(){
+  if (!TTS.ok) return;
+  TTS.voices = speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang)).sort((a,b)=>voiceScore(b)-voiceScore(a));
+  let saved = null; try{ saved = localStorage.getItem("dreamBookVoice"); }catch(e){}
+  TTS.voice = TTS.voices.find(v=>v.name===saved) || TTS.voices[0] || null;
+  fillVoiceSel();
+}
+function fillVoiceSel(){
+  const sel = $("voiceSel"); if (!sel) return;
+  sel.innerHTML = TTS.voices.map(v=>`<option value="${esc(v.name)}"${TTS.voice && v.name===TTS.voice.name ? " selected":""}>${esc(v.name.replace(/^Microsoft\s+/,"").replace(/\s*-\s*English.*$/,""))} (${esc(v.lang)})</option>`).join("");
+  const note = $("vnote");
+  if (note) note.textContent = !TTS.ok || !TTS.voices.length ? "이 기기에는 영어 음성이 없어요." :
+    (TTS.voice && /natural|google/i.test(TTS.voice.name) ? "" : "Edge 브라우저에서 열면 더 자연스러운 목소리를 쓸 수 있어요.");
+}
+function speakText(text, onEnd){
+  if (!TTS.ok) return;
+  const u = new SpeechSynthesisUtterance(text);
+  if (TTS.voice){ u.voice = TTS.voice; u.lang = TTS.voice.lang; } else u.lang = "en-US";
+  u.rate = 0.88; u.pitch = 1;
+  u.onend = u.onerror = () => onEnd && onEnd();
+  speechSynthesis.speak(u);
+}
+const plain = h => h.replace(/<[^>]+>/g,"").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"');
+function mark(i){ document.querySelectorAll("#final .sent").forEach(li => li.classList.toggle("talk", +li.dataset.i === i)); }
+function setupListen(){
+  if (!$("listen")) return;
+  if (!TTS.ok){ $("listen").innerHTML = `<span class="vnote">이 브라우저는 읽어 주기를 지원하지 않아요.</span>`; document.querySelectorAll("#final .spk").forEach(b=>b.remove()); return; }
+  loadVoices();
+  const texts = sentences().filter(x=>!x.skip).map(x => plain(x.en));
+  $("voiceSel").onchange = e => { TTS.voice = TTS.voices.find(v=>v.name===e.target.value) || TTS.voice; try{ localStorage.setItem("dreamBookVoice", TTS.voice.name); }catch(_){} fillVoiceSel(); };
+  document.querySelectorAll("#final .spk").forEach(b => b.onclick = () => {
+    const i = +b.dataset.i; speechSynthesis.cancel(); mark(i); speakText(texts[i], () => mark(-1));
+  });
+  $("playAll").onclick = () => {
+    speechSynthesis.cancel();
+    let i = 0;
+    const next = () => { if (i >= texts.length){ mark(-1); return; } mark(i); speakText(texts[i], () => { i++; setTimeout(next, 450); }); };
+    next();
+  };
+}
+if (TTS.ok){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
 
 // ---------- 완성 카드를 이미지로 복사 ----------
 const PADLET_URL = "https://padlet.com/hoithoit/5-l11-i-want-to-be-a-cook_my-dream-book-s025ufr72xuwd15mtmx1";
