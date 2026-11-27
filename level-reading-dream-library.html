@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Level Reading - Dream Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=Nunito:wght@700;800;900&display=swap">
+<style>
+/* Layout: centered reading column — floating header, a soft "library card" per scene, chips inline in sentences; level changes the page tint */
+:root{
+  --bg:#eef6ff; --bg2:#f8fbff; --paper:#ffffff; --ink:#22304a; --muted:#6a7891; --line:#dfe7f2;
+  --chip:#fff1a8; --chip-ink:#4a3b00; --chip-line:#f2d65c; --ok:#c9f2dc; --ok-ink:#0f5132; --ok-line:#6fd3a0;
+  --accent:#5a6cf2; --accent-soft:#e8ebff; --spk-L:#ffe2d1; --spk-B:#d9ecff; --spk-G:#ffe0ef;
+  --display:"Jua","배달의민족 주아","Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --en:"Nunito","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141c2b; --bg2:#1a2335; --paper:#1f2a3f; --ink:#eef2fb; --muted:#a3b0c7; --line:#2f3c55;
+  --chip:#5a4b0e; --chip-ink:#fff4c2; --chip-line:#8a741a; --ok:#174a33; --ok-ink:#c8f5dc; --ok-line:#2f8a5d;
+  --accent:#9aa6ff; --accent-soft:#2a3260; --spk-L:#4a3326; --spk-B:#23374f; --spk-G:#4a2638; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141c2b; --bg2:#1a2335; --paper:#1f2a3f; --ink:#eef2fb; --muted:#a3b0c7; --line:#2f3c55;
+  --chip:#5a4b0e; --chip-ink:#fff4c2; --chip-line:#8a741a; --ok:#174a33; --ok-ink:#c8f5dc; --ok-line:#2f8a5d;
+  --accent:#9aa6ff; --accent-soft:#2a3260; --spk-L:#4a3326; --spk-B:#23374f; --spk-G:#4a2638; color-scheme:dark}
+/* level tints (light) */
+body.l1{--bg:#e9f6ff;--bg2:#f6fbff;--accent:#3d8fe0;--accent-soft:#e2f1ff}
+body.l2{--bg:#f1edff;--bg2:#faf8ff;--accent:#7b5cf0;--accent-soft:#ece6ff}
+body.l3{--bg:#fff0e8;--bg2:#fffaf6;--accent:#f0784a;--accent-soft:#ffe8dc}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body.l1,:root:not([data-theme="light"]) body.l2,:root:not([data-theme="light"]) body.l3{--bg:#141c2b;--bg2:#1a2335;--accent-soft:#2a3260}}
+:root[data-theme="dark"] body.l1,:root[data-theme="dark"] body.l2,:root[data-theme="dark"] body.l3{--bg:#141c2b;--bg2:#1a2335;--accent-soft:#2a3260}
+
+html,body{height:100%}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--body);color:var(--ink);
+  background:radial-gradient(1200px 600px at 10% -10%,var(--bg2),transparent 60%),var(--bg);background-attachment:fixed;transition:background-color .4s;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#app{max-width:980px;margin:0 auto}
+
+/* shared surfaces — every size below is in em of #app, whose font-size is fitted to the screen */
+#app{max-width:none;font-size:clamp(17px,1.6vw,44px)}
+.sheet{background:var(--paper);border-radius:1.4em;box-shadow:0 1px 0 var(--line),0 18px 40px -24px rgba(40,60,110,.35);padding:2em}
+.eyebrow{font-family:var(--display);color:var(--accent);font-size:.8em;letter-spacing:.04em}
+.btn{font-family:var(--display);font-size:1.1em;border:0;border-radius:999px;padding:.55em 1.6em;background:var(--accent);color:#fff;
+  box-shadow:0 8px 18px -8px color-mix(in srgb,var(--accent) 70%,transparent);transition:transform .12s}
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:var(--paper);color:var(--ink);box-shadow:inset 0 0 0 2px var(--line);font-size:.8em;padding:.45em 1.1em}
+.fsb{position:fixed;top:max(10px,env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));z-index:10;font-family:var(--display);font-size:14px;
+  border:0;border-radius:999px;padding:.4em .9em;background:var(--paper);color:var(--muted);box-shadow:inset 0 0 0 2px var(--line)}
+body.fs .fsb{opacity:.35}body.fs .fsb:hover{opacity:1}
+
+/* start + level intro fill the screen */
+.hero,.lvl{min-height:calc(100vh - 36px);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.2vmin;font-size:2.6vmin}
+.hero h1{margin:0;font-family:var(--display);font-weight:400;font-size:5.2em;line-height:1;letter-spacing:.01em}
+.hero h1 span{color:var(--accent)}
+.hero .title{font-family:var(--en);font-weight:900;font-size:1.9em}
+.hero p{margin:0;color:var(--muted);font-size:1.05em}
+.hero .eyebrow{font-size:.95em}
+.hero .btn,.lvl .btn{font-size:1.4em}
+.shelf{display:flex;gap:.35em;align-items:flex-end;height:3.6em}
+.shelf i{display:block;width:.9em;border-radius:.25em .25em .1em .1em}
+.demo{display:inline-flex;gap:.4em;align-items:center;font-size:1.05em;color:var(--muted)}
+.lvl .num{font-family:var(--display);font-size:9em;line-height:.9;color:var(--accent)}
+.lvl .num small{display:block;font-size:.28em;color:var(--muted);letter-spacing:.1em}
+.lvl p{margin:0;font-size:1.5em;font-family:var(--display)}
+.dots{display:flex;gap:.5em}.dots i{width:.75em;height:.75em;border-radius:50%;background:var(--line)}.dots i.on{background:var(--accent)}
+
+/* play */
+.play{display:flex;flex-direction:column;gap:.6em}
+.hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:.7em;background:var(--paper);border-radius:999px;padding:.35em 1em;box-shadow:0 6px 20px -14px rgba(40,60,110,.5);margin-right:5.5em}
+.hud .lv{font-family:var(--display);font-size:1em;color:var(--accent);white-space:nowrap}
+.prog{flex:1;height:.6em;background:var(--accent-soft);border-radius:999px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);border-radius:999px;transition:width .35s}
+.hud .cnt{font-family:var(--en);font-weight:800;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap;font-size:.85em}
+
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:.7em;align-items:start}
+.col{display:flex;flex-direction:column;gap:.7em;min-width:0}
+.scene{background:var(--paper);border-radius:1.1em;padding:.6em 1.1em .5em;box-shadow:0 1px 0 var(--line),0 14px 30px -24px rgba(40,60,110,.4)}
+.scene h3{margin:0 0 .15em;font-family:var(--display);font-weight:400;font-size:.9em;color:var(--accent);display:flex;align-items:center;gap:.4em}
+.ln{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6em;align-items:start;padding:.25em 0}
+.ln + .ln{border-top:1px dashed var(--line)}
+.who{font-family:var(--display);font-size:.62em;border-radius:999px;padding:.3em .75em;white-space:nowrap;margin-top:.75em;min-width:4.6em;text-align:center}
+.who.L{background:var(--spk-L)}.who.B{background:var(--spk-B)}.who.G{background:var(--spk-G)}
+.line{display:flex;align-items:center;flex-wrap:wrap;gap:.25em .3em;font-family:var(--en);font-weight:800;font-size:1.25em;line-height:1.6;min-width:0}
+.chip{font:inherit;font-family:var(--display);font-weight:400;border:2px solid var(--chip-line);background:var(--chip);color:var(--chip-ink);
+  border-radius:.45em;padding:0 .4em;line-height:1.45;box-shadow:0 3px 0 var(--chip-line);transition:transform .1s}
+.chip:hover{transform:translateY(-1px)}
+.chip.on{font-family:var(--en);font-weight:800;background:var(--ok);color:var(--ok-ink);border-color:var(--ok-line);box-shadow:0 3px 0 var(--ok-line);animation:pop .3s}
+.chip.on.still{animation:none}
+@keyframes pop{0%{transform:scale(.75)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.5em 1em}
+.clear{font-family:var(--display);font-size:1.5em;color:var(--accent);animation:pop .4s}
+.tools{display:flex;gap:.4em;flex-wrap:wrap;justify-content:center}
+@media (prefers-reduced-motion: reduce){.chip.on,.clear{animation:none}.btn,.chip{transition:none}}
+@media (max-width:760px){
+  #app{font-size:17px!important}
+  .cols{grid-template-columns:1fr}
+  .hero,.lvl{font-size:4.2vw;min-height:auto;padding-block:10vh}
+  .hud{margin-right:0;margin-top:2.4em}
+}
+@media (max-width:560px){.ln{grid-template-columns:1fr;gap:4px}.who{justify-self:start;margin-top:0}}
+</style>
+</head>
+<body>
+
+<button class="fsb" id="fsb" type="button">⛶ 전체화면</button>
+<div id="app"></div>
+
+<script>
+// [해석, 화자(L 사서 / B 남자아이 / G 여자아이), [[English, 한국어, 한국어로 바뀌는 첫 레벨, (선택) 마지막 레벨]...]]
+const G = [
+ ["📚 Welcome to Dream Library", [
+  ["꿈 도서관에 오신 것을 환영합니다.","L",[["Welcome to","~에 오신 것을 환영합니다",3],["Dream Library.","꿈 도서관",1]]],
+  ["여러분은 여기서 위대한 사람들을 만날 수 있어요.","L",[["You can","여러분은 ~할 수 있어요",3],["meet","만나다",2],["great people","위대한 사람들",1],["here.","여기서",2]]],
+  ["당신은 무엇이 되고 싶나요?","L",[["What","무엇이",2],["do you want to be?","당신은 되고 싶나요?",3]]]]],
+ ["🔬 A Future Scientist", [
+  ["저는 과학자가 되고 싶어요.","B",[["I want to be","저는 ~가 되고 싶어요",3],["a scientist.","과학자",1]]],
+  ["저는 과학을 공부하고 싶어요.","B",[["I want to","저는 ~하고 싶어요",3],["study","공부하다",2],["science.","과학",1]]],
+  ["가장 좋아하는 과학자가 누구인가요?","L",[["Who is","누구인가요?",3],["your favorite","당신이 가장 좋아하는",2],["scientist?","과학자",1]]],
+  ["제가 가장 좋아하는 과학자는 알베르트 아인슈타인이에요.","B",[["My favorite","제가 가장 좋아하는",2],["scientist","과학자",1],["is","~이에요",3],["Albert Einstein.","알베르트 아인슈타인",2]]],
+  ["그는 과학에 큰 변화를 일으켰어요.","B",[["He made","그는 일으켰어요",3],["great changes","큰 변화",1],["in science.","과학에",2]]],
+  ["저는 그를 만나고 싶어요.","B",[["I want to","저는 ~하고 싶어요",3],["meet","만나다",1],["him.","그를",2]]]]],
+ ["✈️ A Future Pilot", [
+  ["당신은 무엇이 되고 싶나요?","L",[["What","무엇이",2],["do you want to be?","당신은 되고 싶나요?",3]]],
+  ["저는 비행사가 되고 싶어요.","G",[["I want to be","저는 ~가 되고 싶어요",3],["a pilot.","비행사",1]]],
+  ["저는 하늘을 날고 싶어요.","G",[["I want to","저는 ~하고 싶어요",3],["fly","날다",1],["in the sky.","하늘에서",2]]],
+  ["가장 좋아하는 비행사가 누구인가요?","L",[["Who is","누구인가요?",3],["your favorite","당신이 가장 좋아하는",2],["pilot?","비행사",1]]],
+  ["제가 가장 좋아하는 비행사는 권기옥이에요.","G",[["My favorite","제가 가장 좋아하는",2],["pilot","비행사",1],["is","~이에요",3],["Gwon Giok.","권기옥",2]]],
+  ["그녀는 한국 최초의 여성 비행사였어요.","G",[["She was","그녀는 ~였어요",3],["the first","최초의",1],["woman pilot","여성 비행사",1],["in Korea.","한국에서",2]]],
+  ["그녀는 7,000시간을 비행했어요.","G",[["She","그녀는",3],["flew","비행했어요",2],["for 7,000 hours.","7,000시간 동안",1]]],
+  ["저는 그녀를 만나고 싶어요.","G",[["I want to","저는 ~하고 싶어요",3],["meet","만나다",1],["her.","그녀를",2]]]]]
+];
+const WHO = {L:"📖 사서", B:"👦 남아", G:"👧 여아"};
+const S = G.flatMap(g=>g[1]);
+const $ = s=>document.querySelector(s), app=$("#app");
+const en = ch=>ch.map(c=>c[0]).join(" ");
+let lv=1, st, lastChip=null;
+
+function start(){
+  lv=1; document.body.className=""; app.style.fontSize=""; st=null;
+  const books = ["#ff9f80","#ffd166","#7ed3b2","#6fb7ff","#a78bfa","#ff8fb8","#ffd166","#7ed3b2"].map((c,i)=>`<i style="background:${c};height:${36+((i*17)%28)}px"></i>`).join("");
+  app.innerHTML = `<div class="sheet hero">
+    <div class="shelf" aria-hidden="true">${books}</div>
+    <div class="eyebrow">Lesson 11 · 4차시 · Let's Read</div>
+    <h1>Level <span>Reading</span></h1>
+    <div class="title">“Dream Library”</div>
+    <p>노란 한국어 칩을 누르면 영어가 나와요!</p>
+    <div class="demo"><span class="chip" style="cursor:default">비행사</span> → <span class="chip on" style="cursor:default;animation:none">a pilot</span></div>
+    <button class="btn" id="go">START</button></div>`;
+  $("#go").onclick = intro;
+}
+function intro(){
+  document.body.className = "l"+lv; app.style.fontSize=""; st=null;
+  const m = {1:"핵심 단어가 한국어로!",2:"더 많은 표현이 한국어로!",3:"문장 전체가 한국어로!"}[lv];
+  app.innerHTML = `<div class="sheet lvl">
+    <div class="dots">${[1,2,3].map(i=>`<i class="${i<=lv?"on":""}"></i>`).join("")}</div>
+    <div class="num"><small>LEVEL</small>${lv}</div>
+    <p>${m}</p>
+    <button class="btn" id="go">PLAY</button></div>`;
+  $("#go").onclick = play;
+}
+
+// 레벨별 칩 목록: {en,ko,q(가려짐 여부)}
+function items(i){
+  const ch = S[i][2];
+  return lv<3 ? ch.map(c=>({en:c[0],ko:c[1],q:c[2]<=lv && lv<=(c[3]||9)})) : [{en:en(ch),ko:S[i][0],q:true}];
+}
+function play(){ st = S.map((_,i)=>items(i).map(c=>({...c,on:false}))); fitPlay(); }
+
+// 화면 크기에 맞춰 글자 크기를 찾기: 한국어 칩 상태와 영어 칩 상태 중 더 긴 쪽에 맞춰 한 번 정하면 칩을 눌러도 크기가 변하지 않아요
+let FZ = null;
+function fitsNow(){
+  const d = document.documentElement;
+  return d.scrollHeight <= innerHeight + 1 && d.scrollWidth <= innerWidth + 1;
+}
+function bestSize(){
+  let lo = 12, hi = 72;
+  while (hi - lo > 0.5){ const m = (lo+hi)/2; app.style.fontSize = m+"px"; if (fitsNow()) lo = m; else hi = m; }
+  return lo;
+}
+function fitPlay(){
+  if (!st) return;
+  // 한 칸(세로)으로 배치하고 글자 크기는 화면 너비에 맞춰요. 남는 부분은 세로 스크롤로 봐요.
+  if (true){ app.style.fontSize = ""; draw(true); return; }
+  const saved = st.map(r=>r.map(c=>c.on));
+  st.forEach(r=>r.forEach(c=>c.on=true));  draw(true); const a = bestSize();
+  st.forEach(r=>r.forEach(c=>c.on=false)); draw(true); const b = bestSize();
+  FZ = Math.floor(Math.min(a,b)*0.98*10)/10;
+  st.forEach((r,i)=>r.forEach((c,j)=>c.on=saved[i][j]));
+  app.style.fontSize = FZ+"px"; draw(true);
+}
+let rt; addEventListener("resize", ()=>{ clearTimeout(rt); rt = setTimeout(()=>{ if (document.querySelector(".play")) fitPlay(); }, 120); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ if (document.querySelector(".play")) fitPlay(); });
+$("#fsb").onclick = ()=>{ try{ if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(()=>{}); }catch(e){} };
+document.addEventListener("fullscreenchange", ()=>{
+  $("#fsb").textContent = document.fullscreenElement ? "✕ 전체화면 끄기" : "⛶ 전체화면";
+  document.body.classList.toggle("fs", !!document.fullscreenElement);
+});
+
+function draw(still){
+  const all = st.flat().filter(c=>c.q), n = all.filter(c=>c.on).length;
+  let h = `<div class="play"><div class="hud"><span class="lv">Level ${lv}</span><div class="prog"><i style="width:${n/all.length*100}%"></i></div><span class="cnt">${n} / ${all.length}</span></div>`;
+  let k = 0;
+  const colOf = gi => gi < 2 ? 0 : 1;   // 왼쪽: 환영 + 과학자, 오른쪽: 비행사
+  const colsHtml = ["",""];
+  G.forEach((g,gi)=>{
+    let h = "";
+    h += `<section class="scene"><h3>${g[0]}</h3>`;
+    g[1].forEach(()=>{
+      const i = k++;
+      h += `<div class="ln"><span class="who ${S[i][1]}">${WHO[S[i][1]]}</span><div class="line">` +
+        st[i].map((c,j)=>c.q ? `<button class="chip ${c.on?"on":""}" data-i="${i}" data-j="${j}">${c.on?c.en:c.ko}</button>` : `<span>${c.en}</span>`).join("") +
+        `</div></div>`;
+    });
+    h += `</section>`;
+    colsHtml[colOf(gi)] += h;
+  });
+  h += `<div class="cols"><div class="col">${colsHtml[0]}</div><div class="col">${colsHtml[1]}</div></div>`;
+  const done = n===all.length;
+  h += `<div class="foot">${done?`<div class="clear">🎉 Level ${lv} Clear!</div>${lv<3?`<button class="btn" id="nx">NEXT LEVEL ▶</button>`:""}`:""}
+    <div class="tools">
+      <button class="btn ghost" id="pv">${lv>1?"◀ 이전 레벨":"◀ 처음 화면"}</button>
+      <button class="btn ghost" id="rs">↺ 다시 가리기</button>
+      <button class="btn ghost" id="all">👁 모두 보기</button>
+      ${lv===3&&done?`<button class="btn ghost" id="home">처음으로</button>`:""}
+    </div></div></div>`;
+  app.innerHTML = h;
+  app.querySelectorAll(".chip.on").forEach(c=>{ if (still || c.dataset.i+"-"+c.dataset.j !== lastChip) c.classList.add("still"); });
+  lastChip = null;
+  app.querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ const c=st[b.dataset.i][b.dataset.j]; c.on=!c.on; lastChip=b.dataset.i+"-"+b.dataset.j; draw(); });
+  $("#rs").onclick = ()=>{ st.flat().forEach(c=>c.on=false); draw(); };
+  $("#all").onclick = ()=>{ st.flat().forEach(c=>c.on=true); draw(); };
+  if ($("#nx")) $("#nx").onclick = ()=>{ lv++; window.scrollTo(0,0); intro(); };
+  if ($("#home")) $("#home").onclick = ()=>{ window.scrollTo(0,0); start(); };
+  $("#pv").onclick = ()=>{ window.scrollTo(0,0); if (lv>1){ lv--; intro(); } else start(); };
+}
+
+start();
+</script>
+</body>
+</html>
