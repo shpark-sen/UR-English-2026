@@ -144,10 +144,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sky);outline-of
 .sent.ok{border-color:color-mix(in srgb,var(--mint) 50%,var(--line))}
 .sent.ok .num{background:var(--mint)}
 .note{margin-top:12px;text-align:center;font-family:var(--display);font-size:15px;background:var(--sun-soft);border-radius:14px;padding:9px}
-.coupon{margin-top:8px;font-size:1.15em}
-.ticket{display:inline-block;margin-left:4px;padding:.15em .7em;border-radius:10px;background:var(--coral);color:#fff;font-size:1.35em;transform:rotate(-3deg);box-shadow:0 4px 0 color-mix(in srgb,var(--coral) 60%,#000);animation:wiggle 1.6s ease-in-out infinite}
-@keyframes wiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) scale(1.06)}}
-@media (prefers-reduced-motion: reduce){.ticket{animation:none}}
+.coupon{margin-top:4px}
+.ticket{color:var(--coral)}
 .go{margin-top:12px;width:100%;border:0;border-radius:16px;padding:12px;background:var(--coral);color:#fff;font-family:var(--display);font-size:22px}
 .go:disabled{background:var(--line);color:var(--muted);cursor:default}
 
@@ -886,7 +884,7 @@ function bookHtml(final){
         <span class="vnote" id="vnote"></span>
       </div>` : ""}
     <ol class="sents">${ss.map((s,i)=>`<li class="sent ${s.ok?"ok":""}" data-i="${i}"><span class="num">${i+1}</span><div class="stx"><div class="en">${s.en}</div><div class="ko">${s.ko}</div></div>${final ? `<button type="button" class="spk" data-i="${i}" aria-label="${i+1}번 문장 듣기">🔊</button>` : ""}</li>`).join("")}</ol>
-    ${final ? `<div class="note">✏️ 공책에 내 글을 또박또박 옮겨 쓰고 선생님께 검사 받아요!<div class="coupon">외우면 <span class="ticket">🎟️ 쿠폰 한 장!</span></div></div>
+    ${final ? `<div class="note">✏️ 교과서에 내 글을 또박또박 옮겨 쓰고 선생님께 확인 받아요!<div class="coupon">외우면 <span class="ticket">쿠폰 한 장!</span></div></div>
       <div class="share">
         <p class="share-t">📌 우리 반 패들렛에도 올려 볼까요?</p>
         <div class="share-row">
